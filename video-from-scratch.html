@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从零开始制作网页视频</title>
+    <meta name="description" content="从零开始搭建网页视频播放器：加载视频地址、控制播放、定制样式与交互。">
+
+    <link rel="icon" href="image/logo.png">
+    <link rel="apple-touch-icon" href="image/logo-black.png">
+    <link rel="manifest" href="manifest.json">
+
+    <script src="libs/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/video-from-scratch.css">
+</head>
+<body class="page-bg text-white">
+    <header class="py-10">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="text-sm uppercase tracking-[0.4em] text-blue-300">从零开始</p>
+                    <h1 class="text-3xl md:text-4xl font-bold gradient-text">网页视频制作速成页</h1>
+                    <p class="text-gray-300 mt-3 max-w-2xl">从输入视频地址到播放控制与界面布局，这里一步步展示制作网页视频的关键流程。</p>
+                </div>
+                <a href="index.html" class="inline-flex items-center justify-center px-4 py-2 border border-[#333] rounded-lg bg-[#151515] hover:bg-[#222] transition-colors">返回首页</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 pb-16">
+        <section class="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
+            <div class="video-card">
+                <div class="video-card__header">
+                    <h2 class="text-xl font-semibold">1. 载入视频源</h2>
+                    <p class="text-sm text-gray-400">输入视频链接或使用示例视频，点击载入即可开始播放。</p>
+                </div>
+                <div class="video-card__body">
+                    <label class="block text-sm text-gray-300" for="videoUrl">视频地址</label>
+                    <div class="video-input-row">
+                        <input id="videoUrl" type="url" placeholder="https://example.com/video.mp4" class="video-input" autocomplete="off">
+                        <button id="loadVideo" class="primary-btn" type="button">载入视频</button>
+                    </div>
+                    <p class="text-xs text-gray-500">示例视频来自开放素材库，可替换为你的 MP4/WEBM 地址。</p>
+
+                    <div class="video-player" aria-live="polite">
+                        <video id="videoPlayer" preload="metadata" poster="image/logo-black.png">
+                            <source id="videoSource" type="video/mp4">
+                            你的浏览器不支持 video 标签。
+                        </video>
+                        <div class="video-overlay" id="videoOverlay">点击播放</div>
+                    </div>
+
+                    <div class="controls">
+                        <button id="playButton" class="control-btn" type="button">播放</button>
+                        <div class="progress-wrapper">
+                            <input id="progress" type="range" min="0" max="100" value="0" class="progress-range">
+                            <div class="time-info">
+                                <span id="currentTime">00:00</span> / <span id="duration">00:00</span>
+                            </div>
+                        </div>
+                        <div class="volume-wrapper">
+                            <label class="text-xs text-gray-400" for="volume">音量</label>
+                            <input id="volume" type="range" min="0" max="1" step="0.05" value="0.8">
+                        </div>
+                        <select id="playbackRate" class="rate-select" aria-label="播放速度">
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                        <button id="fullscreen" class="control-btn" type="button">全屏</button>
+                    </div>
+
+                    <div class="status" id="statusMessage">已准备就绪，点击播放或载入新视频。</div>
+                </div>
+            </div>
+
+            <aside class="tips-card">
+                <h2 class="text-xl font-semibold mb-4">2. 核心步骤清单</h2>
+                <ol class="space-y-4 text-gray-300 text-sm">
+                    <li>
+                        <span class="step-number">01</span>
+                        使用 <span class="text-blue-300">&lt;video&gt;</span> 标签嵌入媒体并设置 poster、controls 或自定义 UI。
+                    </li>
+                    <li>
+                        <span class="step-number">02</span>
+                        监听 <span class="text-blue-300">loadedmetadata</span> 与 <span class="text-blue-300">timeupdate</span> 获取时长与播放进度。
+                    </li>
+                    <li>
+                        <span class="step-number">03</span>
+                        通过 <span class="text-blue-300">play()</span>、<span class="text-blue-300">pause()</span>、<span class="text-blue-300">currentTime</span> 自定义控制按钮。
+                    </li>
+                    <li>
+                        <span class="step-number">04</span>
+                        设置 <span class="text-blue-300">volume</span> 与 <span class="text-blue-300">playbackRate</span> 打造更友好的播放体验。
+                    </li>
+                    <li>
+                        <span class="step-number">05</span>
+                        使用 CSS 布局与渐变背景，打造符合品牌的视觉风格。
+                    </li>
+                </ol>
+
+                <div class="mt-6 text-xs text-gray-500">
+                    提示：发布前请确保视频源具备跨域许可 (CORS)，否则无法在浏览器中加载。
+                </div>
+            </aside>
+        </section>
+
+        <section class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="info-card">
+                <h3>响应式布局</h3>
+                <p>使用 CSS grid 和弹性布局，让播放器在手机与桌面都保持舒适比例。</p>
+            </div>
+            <div class="info-card">
+                <h3>播放体验</h3>
+                <p>提供进度条、音量和倍速，降低用户寻找控制的成本。</p>
+            </div>
+            <div class="info-card">
+                <h3>可扩展性</h3>
+                <p>后续可以接入字幕、章节或播放列表模块。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer mt-8 py-6 border-t border-[#333] bg-[#0a0a0a]">
+        <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+            需要更多功能？欢迎在此页面基础上继续扩展你的网页视频项目。
+        </div>
+    </footer>
+
+    <script src="js/video-from-scratch.js"></script>
+</body>
+</html>
