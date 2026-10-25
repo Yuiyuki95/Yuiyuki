@@ -1,0 +1,23 @@
+{
+  "app": "KEN TV",
+  "version": "6.0.0",
+  "files": [
+    "assets/hls-BZuFH1o-.js",
+    "assets/index-BpdxW0D5.css",
+    "assets/index-Bu8LUWxb.js",
+    "favicon.svg",
+    "icon-192.png",
+    "icon-512.png",
+    "index.html",
+    "manifest.webmanifest",
+    "poster.svg",
+    "posters/BigBuckBunny.jpg",
+    "posters/ElephantsDream.jpg",
+    "posters/Sintel.jpg",
+    "posters/TearsOfSteel.jpg",
+    "service-worker.js",
+    "sw.js",
+    "_worker.js",
+    "_routes.json"
+  ]
+}
