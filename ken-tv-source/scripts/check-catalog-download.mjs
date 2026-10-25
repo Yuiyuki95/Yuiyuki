@@ -1,0 +1,33 @@
+import ts from 'typescript';
+import {mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const dir=mkdtempSync(join(tmpdir(),'ken-tv-check-'));
+try{
+ writeFileSync(join(dir,'package.json'),'{"type":"commonjs"}');
+ for(const name of ['catalog','catalog-formats','download','source-fetch'])writeFileSync(join(dir,name+'.js'),ts.transpileModule(readFileSync(new URL('../lib/'+name+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+ const require=createRequire(join(dir,'check.cjs')),{decodeCatalog}=require('./catalog-formats.js'),{normalizeItems}=require('./catalog.js'),{parsePlaylist,collectHls}=require('./download.js'),{fetchPublic}=require('./source-fetch.js');
+ const source={id:'test',name:'Test',url:'https://video.example.org/api',enabled:true};
+ const xml='<rss><list pagecount="2"><video><id>7</id><name><![CDATA[动画 &amp; 梦]]></name><type>日韩动漫</type><last>2026-10-24 12:00:00</last><dl><dd flag="hls"><![CDATA[第1集$https://media.example.org/1.m3u8#第2集$https://media.example.org/2.mp4]]></dd></dl></video></list><class><ty id="30" pid="4">日韩动漫</ty></class></rss>';
+ const xmlData=decodeCatalog(xml);assert.equal(xmlData.pagecount,2);assert.equal(xmlData.class[0].type_id,'30');assert.equal(normalizeItems(xmlData,source)[0].episodes.length,2);assert.equal(xmlData.list[0].vod_name,'动画 & 梦');
+ assert.throws(()=>decodeCatalog('<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/passwd">]>'+xml),/实体/);
+ const json=decodeCatalog(JSON.stringify({items:[{title:'短片',episodes:[{name:'正片',url:'https://media.example.org/a.mp4'},{name:'坏链接',url:'javascript:alert(1)'}]}]}));assert.equal(normalizeItems(json,source)[0].episodes.length,1);
+ assert.equal(decodeCatalog('{"list":null}').list.length,0);assert.throws(()=>decodeCatalog('null'),/无效/);
+ const m3u=decodeCatalog('#EXTM3U\n#EXTINF:-1 tvg-logo="https://media.example.org/logo.png" group-title="动漫",测试频道\nhttps://media.example.org/live.m3u8\n#EXTINF:-1,坏链接\nhttp://media.example.org/bad.m3u8');assert.equal(m3u.list.length,1);assert.equal(m3u.list[0].type_name,'动漫');
+ assert.throws(()=>parsePlaylist('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key"\n1.ts\n#EXT-X-ENDLIST','https://media.example.org/a.m3u8'),/加密/);
+ assert.throws(()=>parsePlaylist('#EXTM3U\n#EXTINF:5,\na.ts','https://media.example.org/a.m3u8'),/直播/);
+ assert.throws(()=>parsePlaylist('#EXTM3U\nhttp://media.example.org/a.ts\n#EXT-X-ENDLIST','https://media.example.org/a.m3u8'),/HTTPS/);
+ const originalFetch=globalThis.fetch;const requests=[];let retry=0;
+ globalThis.fetch=async(value,options={})=>{if(options.signal?.aborted)throw new DOMException('Aborted','AbortError');const input=new URL(String(value),'https://ken.example.org'),url=input.searchParams.get('url');requests.push(url);
+  if(input.searchParams.get('kind')==='manifest')return new Response(url.endsWith('master.m3u8')?'#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=2000\nhigh.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1000\nlow.m3u8':'#EXTM3U\n#EXTINF:1,\na.ts\n#EXTINF:1,\nb.ts\n#EXT-X-ENDLIST',{headers:{'X-Media-URL':url}});
+  if(url.endsWith('b.ts')&&retry++===0)return Response.json({error:'temporary'},{status:503});const bytes=new Uint8Array(376);bytes[0]=bytes[188]=0x47;bytes[375]=url.endsWith('a.ts')?1:2;return new Response(bytes);
+ };
+ const progress=[],result=await collectHls('https://media.example.org/master.m3u8',new AbortController().signal,p=>progress.push(p));const bytes=new Uint8Array(await result.blob.arrayBuffer());assert.equal(bytes.length,752);assert.equal(bytes[375],1);assert.equal(bytes[751],2);assert.ok(requests.includes('https://media.example.org/low.m3u8'));assert.equal(result.extension,'ts');assert.equal(progress.at(-1).completed,2);
+ const cancelled=new AbortController();cancelled.abort();await assert.rejects(()=>collectHls('https://media.example.org/master.m3u8',cancelled.signal,()=>{}),{name:'AbortError'});
+ globalThis.fetch=async(value)=>String(value).includes('dns-query')?Response.json({Answer:[{type:1,data:'8.8.8.8'}]}):new Response(null,{status:302,headers:{location:'https://127.0.0.1/private'}});
+ await assert.rejects(()=>fetchPublic('https://media.example.org/a.mp4',new AbortController().signal),/内网|IP/);
+ globalThis.fetch=originalFetch;
+ console.log('PASS: XML/JSON/M3U, invalid input, HLS order/retry/cancel/quality, unsafe redirect rejection');
+}finally{rmSync(dir,{recursive:true,force:true});}
